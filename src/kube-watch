@@ -1,0 +1,97 @@
+#!/bin/bash
+
+set -e
+
+USAGE="Usage: kube-watch <Type> <[Namespace/]Name> [Jsonpath]"
+
+function main {
+    local TYPE="$1"
+    local NAMESPACED_NAME="$2"
+    local NAMESPACE="${2%%/*}"
+    local NAME="${2##*/}"
+    local JSONPATH="${3:-"{}"}"
+    local PIDS=()
+
+    if [ -z "${TYPE}" ] || [ -z "${NAME}" ]; then usage; fi
+
+    if [ "${NAMESPACE}/${NAME}" != "${NAMESPACED_NAME}" ]; then
+        NAMESPACE="$(namespace)"
+    fi
+
+    ensure_channel
+
+    watch_object "${TYPE}" "${NAMESPACE}" "${NAME}" "${JSONPATH}"
+    PIDS+=("$!")
+
+    watch_channel
+    PIDS+=("$!")
+
+    wait_watchers "${PIDS[@]}"
+}
+
+function watch_object {
+    local TYPE="$1"
+    local NAMESPACE="$2"
+    local NAME="$3"
+    local JSONPATH="$4"
+
+    echo "Watching object ${TYPE} ${NAMESPACE}/${NAME} ${JSONPATH}..."
+
+    (while :; do
+        kubectl get "${TYPE}" "${NAME}" \
+                --watch \
+                --namespace "${NAMESPACE}" \
+                --output jsonpath="${JSONPATH}" |
+            tee "$(channel)" > /dev/null
+    done) &
+}
+
+function watch_channel {
+    echo "Watching channel $(channel)..."
+    inotifyd kube-watch-handle "$(channel)" &
+}
+
+function wait_watchers {
+    local PIDS=("$@")
+
+    echo "Waiting for one of watcher pids (${PIDS[*]}) get SIGTERM or SIGINT..."
+
+    trap 'kill -TERM ${PIDS[@]}' SIGTERM SIGINT
+    wait "${PIDS[@]}"
+}
+
+function ensure_channel {
+    echo "Ensuring channel file $(channel)..."
+
+    if [ ! -e "$(channel)" ]; then
+        mkdir -p "$(dirname "$(channel)")"
+        touch "$(channel)"
+    fi
+}
+
+function channel {
+    echo "/var/run/kube-watch/channel"
+}
+
+function kubectl {
+    local CACERT; CACERT="$(service_account)/ca.crt"
+    local TOKEN; TOKEN="$(cat "$(service_account)/token")"
+
+    /bin/kubectl --certificate-authority "${CACERT}" \
+                 --token "${TOKEN}" \
+                 "$@"
+}
+
+function service_account {
+    echo "/var/run/secrets/kubernetes.io/serviceaccount"
+}
+function namespace {
+    cat "$(service_account)/namespace"
+}
+
+function usage {
+    >&2 echo "${USAGE}"
+    exit 2
+}
+
+main "$@"
