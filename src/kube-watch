@@ -54,9 +54,11 @@ function watch_channel {
 function wait_watchers {
     local PIDS=("$@")
 
-    echo "Waiting for one of watcher pids (${PIDS[*]}) get SIGTERM or SIGINT..."
 
+    echo "Watchers will be terminated on main process SIGTERM or SIGINT."
     trap 'kill -TERM ${PIDS[@]}' SIGTERM SIGINT
+
+    echo "Waiting for watchers (pids: ${PIDS[*]}) get terminated..."
     wait "${PIDS[@]}"
 }
 
