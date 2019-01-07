@@ -2,9 +2,22 @@
 
 set -e
 
-USAGE="Usage: kube-watch <Type> <[Namespace/]Name> [Jsonpath]"
+USAGE=$(cat <<EOF
+Usage: kube-watch run <Type> <[Namespace/]Name> [Jsonpath]
+       kube-watch version
+EOF
+)
 
 function main {
+    local ACTION="$1"
+    case "${ACTION}" in
+        run) shift; watch_run "$@" ;;
+        version) cat /version ;;
+        *) usage ;;
+    esac
+}
+
+function watch_run {
     local TYPE="$1"
     local NAMESPACED_NAME="$2"
     local NAMESPACE="${2%%/*}"
