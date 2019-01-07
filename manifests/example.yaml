@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-watch-example-configmap
+data:
+  args: arg1,arg2,arg3
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-watch-example-handler
+data:
+  handler: |
+    #!/bin/bash
+
+    CUR_ARGS="$1"
+    PREV_ARGS="$2"
+
+    echo "Current args: ${CUR_ARGS}"
+    echo "Previous args: ${PREV_ARGS}"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-watch
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kube-watch
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["kube-watch-example-configmap"]
+  verbs: ["get", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: kube-watch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kube-watch
+subjects:
+- kind: ServiceAccount
+  name: kube-watch
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube-watch-example
+spec:
+  template:
+    metadata:
+      labels:
+        app: kube-watch-example
+    spec:
+      containers:
+      - image: quay.io/travelping/kube-watch:latest
+        name: kube-watch-example
+        imagePullPolicy: Always
+        args:
+        - run
+        - configmap
+        - kube-watch-example-configmap
+        - --jsonpath={.data.args}
+        volumeMounts:
+        - name: kubectl
+          mountPath: /bin/kubectl
+        - name: handler
+          mountPath: /usr/share/kube-watch
+      volumes:
+      - name: kubectl
+        hostPath:
+          path: /opt/bin/kubectl
+      - name: handler
+        configMap:
+          name: kube-watch-example-handler
+          defaultMode: 0744
+      serviceAccount: kube-watch
+      serviceAccountName: kube-watch
