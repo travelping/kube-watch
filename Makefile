@@ -18,6 +18,8 @@ usage:
 	@echo "Usage: make <Command>"
 	@echo
 	@echo "Commands"
+	@echo "    shellcheck"
+	@echo
 	@echo "    docker-build"
 	@echo "    docker-push"
 	@echo "    docker-release"
@@ -27,6 +29,9 @@ usage:
 	@echo
 	@echo "    git-release"
 	@echo "    version"
+
+shellcheck:
+	shellcheck -as bash src/$(PROJECT){,-handle}
 
 docker-build:
 	docker build $(BUILD_ARGS) . -t $(IMAGE)
