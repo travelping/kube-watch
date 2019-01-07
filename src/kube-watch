@@ -3,8 +3,12 @@
 set -e
 
 USAGE=$(cat <<EOF
-Usage: kube-watch run <Type> <[Namespace/]Name> [Jsonpath]
+Usage: kube-watch run <Type> <[Namespace/]Name> [Options]
        kube-watch version
+
+Options:
+    -j,--jsonpath=<Jsonpath>  Path to the object field (default: {})
+    -h,--handler=<Handler>    Handler (default: /usr/share/kube-watch/handler)
 EOF
 )
 
@@ -22,7 +26,8 @@ function watch_run {
     local NAMESPACED_NAME="$2"
     local NAMESPACE="${2%%/*}"
     local NAME="${2##*/}"
-    local JSONPATH="${3:-"{}"}"
+    local JSONPATH="{}"
+    local HANDLER="/usr/share/kube-watch/handler"
     local PIDS=()
 
     if [ -z "${TYPE}" ] || [ -z "${NAME}" ]; then usage; fi
@@ -31,6 +36,17 @@ function watch_run {
         NAMESPACE="$(namespace)"
     fi
 
+    shift 2
+    for ARG in "$@"; do
+        case "${ARG}" in
+            -j|--jsonpath=*) JSONPATH="${ARG#*=}"; shift ;;
+            -h|--handler=*) HANDLER="${ARG#*=}"; shift ;;
+            *=*) >&2 echo "Unknown argument: ${ARG%=*}"; exit 2 ;;
+            *) >&2 echo "Unknown argument: ${ARG}"; exit 2 ;;
+        esac
+    done
+
+    ensure_handler "${HANDLER}"
     ensure_channel
 
     watch_object "${TYPE}" "${NAMESPACE}" "${NAME}" "${JSONPATH}"
@@ -75,6 +91,16 @@ function wait_watchers {
     wait "${PIDS[@]}"
 }
 
+function ensure_handler {
+    local HANDLER="$1"
+
+    echo "Ensuring handler file $(handler)..."
+    if [ ! -e "$(handler)" ]; then
+        mkdir -p "$(dirname "$(handler)")"
+        echo "${HANDLER}" > "$(handler)"
+    fi
+}
+
 function ensure_channel {
     echo "Ensuring channel file $(channel)..."
 
@@ -86,6 +112,9 @@ function ensure_channel {
 
 function channel {
     echo "/var/run/kube-watch/channel"
+}
+function handler {
+    echo "/var/run/kube-watch/handler"
 }
 
 function kubectl {

@@ -43,7 +43,7 @@ function main {
 }
 
 function handler {
-    echo "/var/run/kube-watch/handler"
+    cat "/var/run/kube-watch/handler"
 }
 
 function usage {
