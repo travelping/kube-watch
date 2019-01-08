@@ -129,7 +129,11 @@ function service_account {
     echo "/var/run/secrets/kubernetes.io/serviceaccount"
 }
 function namespace {
-    cat "$(service_account)/namespace"
+    if [ -e "$(service_account)/namespace" ]; then
+        cat "$(service_account)/namespace"
+    else
+        echo "default"
+    fi
 }
 
 function usage {
