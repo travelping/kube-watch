@@ -31,7 +31,7 @@ function main {
 
     if [ -n "${CHANNEL_DATA_DIFF}" ]; then
         echo "Handling channel data with $(handler)..."
-        "$(handler)" "${CHANNEL_DATA}" "${CHANNEL_DATA_PREV}"
+        "$(handler)" "${CHANNEL}" "${CHANNEL_DATA}" "${CHANNEL_DATA_PREV}"
 
         echo "Saving channel data..."
         echo "${CHANNEL_DATA}" > "${CHANNEL_PREV}"

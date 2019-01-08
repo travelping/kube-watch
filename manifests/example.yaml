@@ -13,8 +13,9 @@ data:
   handler: |
     #!/bin/bash
 
-    echo "Current fruits: $1"
-    echo "Previous fruits: $2"
+    echo "Channel: $1"
+    echo "Current fruits: $2"
+    echo "Previous fruits: $3"
 ---
 apiVersion: v1
 kind: ServiceAccount

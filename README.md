@@ -33,12 +33,18 @@ representing an example executable which is a script like this:
 ```
 #!/bin/bash
 
-echo "Current fruits: $1"
-echo "Previous fruits: $2"
+echo "Channel: $1"
+echo "Current fruits: $2"
+echo "Previous fruits: $3"
 ```
 
-Handling executable is invoked with two parameters: the current state of a field
-and the previous one. Thus this example script just prints out both states.
+Handling executable is invoked with three parameters:
+
+ * target field content exchange file (channel)
+ * current content of the target field
+ * previous content of the target field.
+
+This example script just prints everything out.
 
 To connect this script and the target ConfigMap field, the manifest runs the
 Kube Watch based container as a [Deployment].
@@ -68,6 +74,7 @@ orange,apple,banana
 \ No newline at end of file
 ###
 Handling channel data with /usr/share/kube-watch/handler...
+Channel: /var/run/kube-watch/channel
 Current fruits: orange,apple,banana
 Previous fruits:
 ...
@@ -99,6 +106,7 @@ orange,mango,banana
 \ No newline at end of file
 ###
 Handling channel data with /usr/share/kube-watch/handler...
+Channel: /var/run/kube-watch/channel
 Current fruits: orange,mango,banana
 Previous fruits: orange,apple,banana
 ...
