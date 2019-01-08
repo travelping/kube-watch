@@ -61,7 +61,7 @@ spec:
         - run
         - configmap
         - kube-watch-example-configmap
-        - --jsonpath={.data.args}
+        - --jsonpath={.data.fruits}
         volumeMounts:
         - name: kubectl
           mountPath: /bin/kubectl

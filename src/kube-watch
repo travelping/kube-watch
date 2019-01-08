@@ -39,10 +39,9 @@ function watch_run {
     shift 2
     for ARG in "$@"; do
         case "${ARG}" in
-            -j|--jsonpath=*) JSONPATH="${ARG#*=}"; shift ;;
-            -h|--handler=*) HANDLER="${ARG#*=}"; shift ;;
-            *=*) >&2 echo "Unknown argument: ${ARG%=*}"; exit 2 ;;
-            *) >&2 echo "Unknown argument: ${ARG}"; exit 2 ;;
+            -j=|--jsonpath=*) JSONPATH="${ARG#*=}" ;;
+            -h=|--handler=*) HANDLER="${ARG#*=}" ;;
+            *) unknown_option "${ARG}" ;;
         esac
     done
 
@@ -135,6 +134,11 @@ function namespace {
 
 function usage {
     >&2 echo "${USAGE}"
+    exit 2
+}
+function unknown_option {
+    local OPTION="$1"
+    >&2 echo "Unknown option: ${OPTION%%=*}"
     exit 2
 }
 

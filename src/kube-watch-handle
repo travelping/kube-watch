@@ -13,14 +13,14 @@ function main {
     local CHANNEL_DATA_DIFF
 
     if [ -z "${EVENT}" ] || [ -z "${CHANNEL}" ]; then usage; fi
-
-    echo "Got ${EVENT}"
     if [ "${EVENT}" != "c" ]; then return; fi
 
     CHANNEL_DATA="$(tr -d '\0' <"${CHANNEL}")"
     if [ -z "${CHANNEL_DATA}" ]; then return; fi
 
-    [ ! -e "${CHANNEL_PREV}" ] && touch "${CHANNEL_PREV}"
+    if [ ! -e "${CHANNEL_PREV}" ]; then
+        touch "${CHANNEL_PREV}"
+    fi
 
     CHANNEL_DATA_PREV="$(tr -d '\0' <"${CHANNEL_PREV}")"
     CHANNEL_DATA_DIFF="$(diff <(echo -en "${CHANNEL_DATA_PREV}") \
