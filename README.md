@@ -8,6 +8,10 @@ invoking a specified handling executable on a change.
 
 ## Usage
 
+For better usage understanding we start with an example.
+
+### Example
+
 Consider you have a [ConfigMap]:
 
 ```
@@ -100,6 +104,38 @@ Previous fruits: orange,apple,banana
 ...
 ```
 
+### Your Own Solution
+
+Your own solution should not necessarily be a deployment and mount your handling
+executable as a ConfigMap. For example, you can build your own Docker image from
+this one with all the needed executables baked in. Or use [DaemonSet] instead of
+Deployment.
+
+All you need to know is the base image usage. If you run it without arguments
+it provides basic idea:
+
+```
+$ docker run --rm quay.io/travelping/kube-watch
+Usage: kube-watch run <Type> <[Namespace/]Name> [Options]
+       kube-watch version
+
+Options:
+    -j,--jsonpath=<Jsonpath>  Path to the object field (default: {})
+    -h,--handler=<Handler>    Handler (default: /usr/share/kube-watch/handler)
+```
+
+Along with the correctly specified arguments for the "kube-watch" make sure the
+following:
+
+* the "kubectl" is available in the container (either mounted from the node or
+  baked into the next layer image)
+* running pod has enough permissions to watch the target object (see the Role
+  in the [Example Manifest])
+* handler executable is available in the container.
+
+You can also have several targets being watched. In this case you would need an
+accordingly configured container per target.
+
 ## License
 
 Copyright 2019 Travelping GmbH
@@ -120,6 +156,7 @@ limitations under the License.
 
 [Docker]: https://docs.docker.com
 [ConfigMap]: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap
+[DaemonSet]: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset
 [Deployment]: https://kubernetes.io/docs/concepts/workloads/controllers/deployment
 [Kubernetes]: https://kubernetes.io
 [Role]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole
