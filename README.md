@@ -129,6 +129,7 @@ Usage: kube-watch run <Type> <[Namespace/]Name> [Options]
 
 Options:
     -j,--jsonpath=<Jsonpath>  Path to the object field (default: {})
+    -c,--channel=<Channel>    Channel (default: /var/run/kube-watch/channel)
     -h,--handler=<Handler>    Handler (default: /usr/share/kube-watch/handler)
 ```
 

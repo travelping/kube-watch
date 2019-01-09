@@ -43,7 +43,7 @@ function main {
 }
 
 function handler {
-    cat "/var/run/kube-watch/handler"
+    cat "/var/run/kube-watch-config"
 }
 
 function usage {

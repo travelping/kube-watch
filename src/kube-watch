@@ -8,6 +8,7 @@ Usage: kube-watch run <Type> <[Namespace/]Name> [Options]
 
 Options:
     -j,--jsonpath=<Jsonpath>  Path to the object field (default: {})
+    -c,--channel=<Channel>    Channel (default: /var/run/kube-watch/channel)
     -h,--handler=<Handler>    Handler (default: /usr/share/kube-watch/handler)
 EOF
 )
@@ -27,6 +28,7 @@ function watch_run {
     local NAMESPACE="${2%%/*}"
     local NAME="${2##*/}"
     local JSONPATH="{}"
+    local CHANNEL="/var/run/kube-watch/channel"
     local HANDLER="/usr/share/kube-watch/handler"
     local PIDS=()
 
@@ -40,21 +42,39 @@ function watch_run {
     for ARG in "$@"; do
         case "${ARG}" in
             -j=|--jsonpath=*) JSONPATH="${ARG#*=}" ;;
+            -c=|--channel=*) CHANNEL="${ARG#*=}" ;;
             -h=|--handler=*) HANDLER="${ARG#*=}" ;;
             *) unknown_option "${ARG}" ;;
         esac
     done
 
-    ensure_handler "${HANDLER}"
-    ensure_channel
+    create_channel "${CHANNEL}"
+    set_handler "${HANDLER}"
 
-    watch_object "${TYPE}" "${NAMESPACE}" "${NAME}" "${JSONPATH}"
+    watch_object "${TYPE}" "${NAMESPACE}" "${NAME}" "${JSONPATH}" "${CHANNEL}"
     PIDS+=("$!")
 
-    watch_channel
+    watch_channel "${CHANNEL}"
     PIDS+=("$!")
 
     wait_watchers "${PIDS[@]}"
+}
+
+function create_channel {
+    local CHANNEL="$1"
+
+    echo "Creating channel ${CHANNEL}..."
+    if [ ! -e "${CHANNEL}" ]; then
+        mkdir -p "$(dirname "${CHANNEL}")"
+        touch "${CHANNEL}"
+    fi
+}
+
+function set_handler {
+    local HANDLER="$1"
+
+    echo "Setting handler ${HANDLER}..."
+    echo "${HANDLER}" > "$(runtime_config)"
 }
 
 function watch_object {
@@ -62,6 +82,7 @@ function watch_object {
     local NAMESPACE="$2"
     local NAME="$3"
     local JSONPATH="$4"
+    local CHANNEL="$5"
 
     echo "Watching object ${TYPE} ${NAMESPACE}/${NAME} ${JSONPATH}..."
 
@@ -70,18 +91,19 @@ function watch_object {
                 --watch \
                 --namespace "${NAMESPACE}" \
                 --output jsonpath="${JSONPATH}" |
-            tee "$(channel)" > /dev/null
+            tee "${CHANNEL}" > /dev/null
     done) &
 }
 
 function watch_channel {
-    echo "Watching channel $(channel)..."
-    inotifyd kube-watch-handle "$(channel)" &
+    local CHANNEL="$1"
+
+    echo "Watching channel ${CHANNEL}..."
+    inotifyd kube-watch-handle "${CHANNEL}" &
 }
 
 function wait_watchers {
     local PIDS=("$@")
-
 
     echo "Watchers will be terminated on main process SIGTERM or SIGINT."
     trap 'kill -TERM ${PIDS[@]}' SIGTERM SIGINT
@@ -90,30 +112,8 @@ function wait_watchers {
     wait "${PIDS[@]}"
 }
 
-function ensure_handler {
-    local HANDLER="$1"
-
-    echo "Ensuring handler file $(handler)..."
-    if [ ! -e "$(handler)" ]; then
-        mkdir -p "$(dirname "$(handler)")"
-        echo "${HANDLER}" > "$(handler)"
-    fi
-}
-
-function ensure_channel {
-    echo "Ensuring channel file $(channel)..."
-
-    if [ ! -e "$(channel)" ]; then
-        mkdir -p "$(dirname "$(channel)")"
-        touch "$(channel)"
-    fi
-}
-
-function channel {
-    echo "/var/run/kube-watch/channel"
-}
-function handler {
-    echo "/var/run/kube-watch/handler"
+function runtime_config {
+    echo "/var/run/kube-watch-config"
 }
 
 function kubectl {
