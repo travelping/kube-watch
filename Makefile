@@ -1,5 +1,5 @@
 PROJECT = kube-watch
-VERSION = 0.2.1
+VERSION = 0.2.2
 
 REGISTRY = quay.io
 USER = travelping

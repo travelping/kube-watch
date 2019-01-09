@@ -8,7 +8,7 @@ LABEL PROJECT="${PROJECT}"
 
 RUN apk upgrade --no-cache --update && \
     apk add --no-cache bash && \
-    echo "${VERSION} (git-${GIT_SHA})" > /version
+    echo "${VERSION} (git-${GIT_SHA})" > "/${PROJECT}-version"
 
 COPY src /bin
 ENTRYPOINT ["/bin/kube-watch"]

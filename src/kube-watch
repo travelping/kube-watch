@@ -17,7 +17,7 @@ function main {
     local ACTION="$1"
     case "${ACTION}" in
         run) shift; watch_run "$@" ;;
-        version) cat /version ;;
+        version) cat /kube-watch-version ;;
         *) usage ;;
     esac
 }
