@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+
+USAGE="Usage: kube-watch-handle-file <Event> <FileName>"
+
+function main {
+    local EVENT="$1"
+    local FILENAME="$2"
+
+    if [ -z "${EVENT}" ] || [ -z "${FILENAME}" ]; then usage; fi
+    if [ "${EVENT}" != "x" ]; then return; fi
+
+    echo "Handling change in ${FILENAME}..."
+    cat "${FILENAME}" >> "$(channel)"
+}
+
+function channel {
+    cat "/var/run/kube-watch-config/channel"
+}
+
+function usage {
+    >&2 echo "${USAGE}"
+    exit 2
+}
+
+main "$@"

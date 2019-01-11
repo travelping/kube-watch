@@ -124,7 +124,8 @@ it provides basic idea:
 
 ```
 $ docker run --rm quay.io/travelping/kube-watch
-Usage: kube-watch run <Type> <[Namespace/]Name> [Options]
+Usage: kube-watch object <Object> <[Namespace/]Name> [Options]
+       kube-watch file <FileName> [Options]
        kube-watch version
 
 Options:
@@ -136,14 +137,23 @@ Options:
 Along with the correctly specified arguments for the "kube-watch" make sure the
 following:
 
-* the "kubectl" is available in the container (either mounted from the node or
-  baked into the next layer image)
+* the "kubectl" binary is available in the container (either mounted from the
+  node or baked into the next layer image)
 * running pod has enough permissions to watch the target object (see the Role
   in the [Example Manifest])
 * handler executable is available in the container.
 
 You can also have several targets being watched. In this case you would need an
 accordingly configured container per target.
+
+### Watching Files
+
+As you might noticed in the [Your Own Solution] section, the "usage" output
+mentions "file" as a target along with the "object" one. In this case you can
+specify a file path to watch. For that you need neither "kubectl" binary nor any
+roles for Kubernetes objects watching permission.
+
+Currently this feature works with mounted files only.
 
 ## License
 
@@ -172,6 +182,7 @@ limitations under the License.
 [RoleBinding]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding
 [Service Account]: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account
 [Example Manifest]: manifests/example.yaml
+[Your Own Solution]: #your-own-solution
 
 <!-- Badges -->
 

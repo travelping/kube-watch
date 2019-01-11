@@ -1,5 +1,5 @@
 PROJECT = kube-watch
-VERSION = 0.2.2
+VERSION = 0.3.0
 
 REGISTRY = quay.io
 USER = travelping
@@ -31,7 +31,7 @@ usage:
 	@echo "    version"
 
 shellcheck:
-	shellcheck -as bash src/$(PROJECT){,-handle}
+	shellcheck -as bash src/$(PROJECT){,-handle-{channel,file}}
 
 docker-build:
 	docker build $(BUILD_ARGS) . -t $(IMAGE)

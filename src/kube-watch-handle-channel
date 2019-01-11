@@ -2,7 +2,7 @@
 
 set -e
 
-USAGE="Usage: kube-watch-handle <Event> <Channel>"
+USAGE="Usage: kube-watch-handle-channel <Event> <Channel>"
 
 function main {
     local EVENT="$1"
@@ -43,7 +43,7 @@ function main {
 }
 
 function handler {
-    cat "/var/run/kube-watch-config"
+    cat "/var/run/kube-watch-config/handler"
 }
 
 function usage {

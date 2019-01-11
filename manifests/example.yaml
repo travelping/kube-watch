@@ -55,11 +55,11 @@ spec:
         app: kube-watch-example
     spec:
       containers:
-      - image: quay.io/travelping/kube-watch:latest
-        name: kube-watch-example
+      - name: kube-watch-example
+        image: quay.io/travelping/kube-watch:latest
         imagePullPolicy: Always
         args:
-        - run
+        - object
         - configmap
         - kube-watch-example-configmap
         - --jsonpath={.data.fruits}

@@ -3,7 +3,8 @@
 set -e
 
 USAGE=$(cat <<EOF
-Usage: kube-watch run <Type> <[Namespace/]Name> [Options]
+Usage: kube-watch object <Type> <[Namespace/]Name> [Options]
+       kube-watch file <FileName> [Options]
        kube-watch version
 
 Options:
@@ -14,31 +15,38 @@ EOF
 )
 
 function main {
-    local ACTION="$1"
-    case "${ACTION}" in
-        run) shift; watch_run "$@" ;;
-        version) cat /kube-watch-version ;;
-        *) usage ;;
-    esac
-}
-
-function watch_run {
-    local TYPE="$1"
-    local NAMESPACED_NAME="$2"
-    local NAMESPACE="${2%%/*}"
-    local NAME="${2##*/}"
-    local JSONPATH="{}"
+    local TARGET="$1"
     local CHANNEL="/var/run/kube-watch/channel"
     local HANDLER="/usr/share/kube-watch/handler"
     local PIDS=()
 
-    if [ -z "${TYPE}" ] || [ -z "${NAME}" ]; then usage; fi
+    case "${TARGET}" in
+        object)
+            local OBJECT="$2"
+            local NAMESPACED_NAME="$3"
+            local NAMESPACE="${3%%/*}"
+            local NAME="${3##*/}"
+            local JSONPATH="{}"
 
-    if [ "${NAMESPACE}/${NAME}" != "${NAMESPACED_NAME}" ]; then
-        NAMESPACE="$(namespace)"
-    fi
+            if [ -z "${OBJECT}" ] || [ -z "${NAME}" ]; then usage; fi
 
-    shift 2
+            if [ "${NAMESPACE}/${NAME}" != "${NAMESPACED_NAME}" ]; then
+                NAMESPACE="$(namespace)"
+            fi
+
+            shift 3
+        ;;
+        file)
+            local FILENAME="$2"
+
+            if [ -z "${FILENAME}" ]; then usage; fi
+
+            shift 2
+        ;;
+        version) cat /kube-watch-version ;;
+        *) usage ;;
+    esac
+
     for ARG in "$@"; do
         case "${ARG}" in
             -j=|--jsonpath=*) JSONPATH="${ARG#*=}" ;;
@@ -48,46 +56,34 @@ function watch_run {
         esac
     done
 
+    set_runtime_config handler "${HANDLER}"
+    set_runtime_config channel "${CHANNEL}"
     create_channel "${CHANNEL}"
-    set_handler "${HANDLER}"
-
-    watch_object "${TYPE}" "${NAMESPACE}" "${NAME}" "${JSONPATH}" "${CHANNEL}"
-    PIDS+=("$!")
 
     watch_channel "${CHANNEL}"
+    PIDS+=("$!")
+
+    case "${TARGET}" in
+        object) watch_object "${OBJECT}" "${NAMESPACE}" "${NAME}" \
+                             "${JSONPATH}" "${CHANNEL}" ;;
+        file) watch_file "${FILENAME}" "${CHANNEL}" ;;
+    esac
     PIDS+=("$!")
 
     wait_watchers "${PIDS[@]}"
 }
 
-function create_channel {
-    local CHANNEL="$1"
-
-    echo "Creating channel ${CHANNEL}..."
-    if [ ! -e "${CHANNEL}" ]; then
-        mkdir -p "$(dirname "${CHANNEL}")"
-        touch "${CHANNEL}"
-    fi
-}
-
-function set_handler {
-    local HANDLER="$1"
-
-    echo "Setting handler ${HANDLER}..."
-    echo "${HANDLER}" > "$(runtime_config)"
-}
-
 function watch_object {
-    local TYPE="$1"
+    local OBJECT="$1"
     local NAMESPACE="$2"
     local NAME="$3"
     local JSONPATH="$4"
     local CHANNEL="$5"
 
-    echo "Watching object ${TYPE} ${NAMESPACE}/${NAME} ${JSONPATH}..."
+    echo "Watching object ${OBJECT} ${NAMESPACE}/${NAME} ${JSONPATH}..."
 
     (while :; do
-        kubectl get "${TYPE}" "${NAME}" \
+        kubectl get "${OBJECT}" "${NAME}" \
                 --watch \
                 --namespace "${NAMESPACE}" \
                 --output jsonpath="${JSONPATH}" |
@@ -95,11 +91,23 @@ function watch_object {
     done) &
 }
 
+function watch_file {
+    local FILENAME="$1"
+    local CHANNEL="$2"
+
+    echo "Watching file ${FILENAME}..."
+
+    cat "${FILENAME}" >> "${CHANNEL}"
+    (while :; do
+        inotifyd kube-watch-handle-file "${FILENAME}"
+    done) &
+}
+
 function watch_channel {
     local CHANNEL="$1"
 
     echo "Watching channel ${CHANNEL}..."
-    inotifyd kube-watch-handle "${CHANNEL}" &
+    inotifyd kube-watch-handle-channel "${CHANNEL}" &
 }
 
 function wait_watchers {
@@ -112,7 +120,26 @@ function wait_watchers {
     wait "${PIDS[@]}"
 }
 
-function runtime_config {
+function create_channel {
+    local CHANNEL="$1"
+
+    echo "Creating channel ${CHANNEL}..."
+    if [ ! -e "${CHANNEL}" ]; then
+        mkdir -p "$(dirname "${CHANNEL}")"
+        touch "${CHANNEL}"
+    fi
+}
+
+function set_runtime_config {
+    local KEY="$1"
+    local VALUE="$2"
+
+    echo "Setting ${KEY} ${VALUE}..."
+
+    mkdir -p "$(runtime_config_dir)"
+    echo "${VALUE}" > "$(runtime_config_dir)/${KEY}"
+}
+function runtime_config_dir {
     echo "/var/run/kube-watch-config"
 }
 
