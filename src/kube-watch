@@ -143,24 +143,8 @@ function runtime_config_dir {
     echo "/var/run/kube-watch-config"
 }
 
-function kubectl {
-    local CACERT; CACERT="$(service_account)/ca.crt"
-    local TOKEN; TOKEN="$(cat "$(service_account)/token")"
-
-    /bin/kubectl --certificate-authority "${CACERT}" \
-                 --token "${TOKEN}" \
-                 "$@"
-}
-
-function service_account {
-    echo "/var/run/secrets/kubernetes.io/serviceaccount"
-}
 function namespace {
-    if [ -e "$(service_account)/namespace" ]; then
-        cat "$(service_account)/namespace"
-    else
-        echo "default"
-    fi
+    cat "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 }
 
 function usage {
