@@ -2,17 +2,17 @@
 
 set -e
 
-USAGE="Usage: kube-watch-handle-file <Event> <FileName>"
+Usage="Usage: kube-watch-handle-file <Event> <FileName>"
 
 function main {
-    local EVENT="$1"
-    local FILENAME="$2"
+    local Event="$1"
+    local FileName="$2"
 
-    if [ -z "${EVENT}" ] || [ -z "${FILENAME}" ]; then usage; fi
-    if [ "${EVENT}" != "x" ]; then return; fi
+    if [ -z "${Event}" ] || [ -z "${FileName}" ]; then usage; fi
+    if [ "${Event}" != "x" ]; then return; fi
 
-    echo "Handling change in ${FILENAME}..."
-    cat "${FILENAME}" >> "$(channel)"
+    echo "Handling change in ${FileName}..."
+    cat "${FileName}" >> "$(channel)"
 }
 
 function channel {
@@ -20,7 +20,7 @@ function channel {
 }
 
 function usage {
-    >&2 echo "${USAGE}"
+    >&2 echo "${Usage}"
     exit 2
 }
 

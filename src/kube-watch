@@ -2,44 +2,44 @@
 
 set -e
 
-USAGE=$(cat <<EOF
+Usage=$(cat <<EOF
 Usage: kube-watch object <Type> <[Namespace/]Name> [Options]
        kube-watch file <FileName> [Options]
        kube-watch version
 
 Options:
-    -j,--jsonpath=<Jsonpath>  Path to the object field (default: {})
+    -j,--jsonpath=<JsonPath>  Path to the object field (default: {})
     -c,--channel=<Channel>    Channel (default: /var/run/kube-watch/channel)
     -h,--handler=<Handler>    Handler (default: /usr/share/kube-watch/handler)
 EOF
 )
 
 function main {
-    local TARGET="$1"
-    local CHANNEL="/var/run/kube-watch/channel"
-    local HANDLER="/usr/share/kube-watch/handler"
-    local PIDS=()
+    local Target="$1"
+    local Channel="/var/run/kube-watch/channel"
+    local Handler="/usr/share/kube-watch/handler"
+    local Pids=()
 
-    case "${TARGET}" in
+    case "${Target}" in
         object)
-            local OBJECT="$2"
-            local NAMESPACED_NAME="$3"
-            local NAMESPACE="${3%%/*}"
-            local NAME="${3##*/}"
-            local JSONPATH="{}"
+            local Object="$2"
+            local NamespacedName="$3"
+            local Namespace="${3%%/*}"
+            local Name="${3##*/}"
+            local JsonPath="{}"
 
-            if [ -z "${OBJECT}" ] || [ -z "${NAME}" ]; then usage; fi
+            if [ -z "${Object}" ] || [ -z "${Name}" ]; then usage; fi
 
-            if [ "${NAMESPACE}/${NAME}" != "${NAMESPACED_NAME}" ]; then
-                NAMESPACE="$(namespace)"
+            if [ "${Namespace}/${Name}" != "${NamespacedName}" ]; then
+                Namespace="$(namespace)"
             fi
 
             shift 3
         ;;
         file)
-            local FILENAME="$2"
+            local FileName="$2"
 
-            if [ -z "${FILENAME}" ]; then usage; fi
+            if [ -z "${FileName}" ]; then usage; fi
 
             shift 2
         ;;
@@ -47,97 +47,97 @@ function main {
         *) usage ;;
     esac
 
-    for ARG in "$@"; do
-        case "${ARG}" in
-            -j=|--jsonpath=*) JSONPATH="${ARG#*=}" ;;
-            -c=|--channel=*) CHANNEL="${ARG#*=}" ;;
-            -h=|--handler=*) HANDLER="${ARG#*=}" ;;
-            *) unknown_option "${ARG}" ;;
+    for Arg in "$@"; do
+        case "${Arg}" in
+            -j=|--jsonpath=*) JsonPath="${Arg#*=}" ;;
+            -c=|--channel=*) Channel="${Arg#*=}" ;;
+            -h=|--handler=*) Handler="${Arg#*=}" ;;
+            *) unknown_option "${Arg}" ;;
         esac
     done
 
-    set_runtime_config handler "${HANDLER}"
-    set_runtime_config channel "${CHANNEL}"
-    create_channel "${CHANNEL}"
+    set_runtime_config handler "${Handler}"
+    set_runtime_config channel "${Channel}"
+    create_channel "${Channel}"
 
-    watch_channel "${CHANNEL}"
-    PIDS+=("$!")
+    watch_channel "${Channel}"
+    Pids+=("$!")
 
-    case "${TARGET}" in
-        object) watch_object "${OBJECT}" "${NAMESPACE}" "${NAME}" \
-                             "${JSONPATH}" "${CHANNEL}" ;;
-        file) watch_file "${FILENAME}" "${CHANNEL}" ;;
+    case "${Target}" in
+        object) watch_object "${Object}" "${Namespace}" "${Name}" \
+                             "${JsonPath}" "${Channel}" ;;
+        file) watch_file "${FileName}" "${Channel}" ;;
     esac
-    PIDS+=("$!")
+    Pids+=("$!")
 
-    wait_watchers "${PIDS[@]}"
+    wait_watchers "${Pids[@]}"
 }
 
 function watch_object {
-    local OBJECT="$1"
-    local NAMESPACE="$2"
-    local NAME="$3"
-    local JSONPATH="$4"
-    local CHANNEL="$5"
+    local Object="$1"
+    local Namespace="$2"
+    local Name="$3"
+    local JsonPath="$4"
+    local Channel="$5"
 
-    echo "Watching object ${OBJECT} ${NAMESPACE}/${NAME} ${JSONPATH}..."
+    echo "Watching object ${Object} ${Namespace}/${Name} ${JsonPath}..."
 
     (while :; do
-        kubectl get "${OBJECT}" "${NAME}" \
+        kubectl get "${Object}" "${Name}" \
                 --watch \
-                --namespace "${NAMESPACE}" \
-                --output jsonpath="${JSONPATH}" |
-            tee "${CHANNEL}" > /dev/null
+                --namespace "${Namespace}" \
+                --output jsonpath="${JsonPath}" |
+            tee "${Channel}" > /dev/null
     done) &
 }
 
 function watch_file {
-    local FILENAME="$1"
-    local CHANNEL="$2"
+    local FileName="$1"
+    local Channel="$2"
 
-    echo "Watching file ${FILENAME}..."
+    echo "Watching file ${FileName}..."
 
-    cat "${FILENAME}" >> "${CHANNEL}"
+    cat "${FileName}" >> "${Channel}"
     (while :; do
-        inotifyd kube-watch-handle-file "${FILENAME}"
+        inotifyd kube-watch-handle-file "${FileName}"
     done) &
 }
 
 function watch_channel {
-    local CHANNEL="$1"
+    local Channel="$1"
 
-    echo "Watching channel ${CHANNEL}..."
-    inotifyd kube-watch-handle-channel "${CHANNEL}" &
+    echo "Watching channel ${Channel}..."
+    inotifyd kube-watch-handle-channel "${Channel}" &
 }
 
 function wait_watchers {
-    local PIDS=("$@")
+    local Pids=("$@")
 
     echo "Watchers will be terminated on main process SIGTERM or SIGINT."
-    trap 'kill -TERM ${PIDS[@]}' SIGTERM SIGINT
+    trap 'kill -TERM ${Pids[@]}' SIGTERM SIGINT
 
-    echo "Waiting for watchers (pids: ${PIDS[*]}) get terminated..."
-    wait "${PIDS[@]}"
+    echo "Waiting for watchers (pids: ${Pids[*]}) get terminated..."
+    wait "${Pids[@]}"
 }
 
 function create_channel {
-    local CHANNEL="$1"
+    local Channel="$1"
 
-    echo "Creating channel ${CHANNEL}..."
-    if [ ! -e "${CHANNEL}" ]; then
-        mkdir -p "$(dirname "${CHANNEL}")"
-        touch "${CHANNEL}"
+    echo "Creating channel ${Channel}..."
+    if [ ! -e "${Channel}" ]; then
+        mkdir -p "$(dirname "${Channel}")"
+        touch "${Channel}"
     fi
 }
 
 function set_runtime_config {
-    local KEY="$1"
-    local VALUE="$2"
+    local Key="$1"
+    local Value="$2"
 
-    echo "Setting ${KEY} ${VALUE}..."
+    echo "Setting ${Key} ${Value}..."
 
     mkdir -p "$(runtime_config_dir)"
-    echo "${VALUE}" > "$(runtime_config_dir)/${KEY}"
+    echo "${Value}" > "$(runtime_config_dir)/${Key}"
 }
 function runtime_config_dir {
     echo "/var/run/kube-watch-config"
@@ -148,12 +148,12 @@ function namespace {
 }
 
 function usage {
-    >&2 echo "${USAGE}"
+    >&2 echo "${Usage}"
     exit 2
 }
 function unknown_option {
-    local OPTION="$1"
-    >&2 echo "Unknown option: ${OPTION%%=*}"
+    local Option="$1"
+    >&2 echo "Unknown option: ${Option%%=*}"
     exit 2
 }
 

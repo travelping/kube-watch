@@ -2,43 +2,43 @@
 
 set -e
 
-USAGE="Usage: kube-watch-handle-channel <Event> <Channel>"
+Usage="Usage: kube-watch-handle-channel <Event> <Channel>"
 
 function main {
-    local EVENT="$1"
-    local CHANNEL="$2"
-    local CHANNEL_PREV="${CHANNEL}.prev"
-    local CHANNEL_DATA
-    local CHANNEL_DATA_PREV
-    local CHANNEL_DATA_DIFF
+    local Event="$1"
+    local Channel="$2"
+    local ChannelPrev="${Channel}.prev"
+    local ChannelData
+    local ChannelDataPrev
+    local ChannelDataDiff
 
-    if [ -z "${EVENT}" ] || [ -z "${CHANNEL}" ]; then usage; fi
-    if [ "${EVENT}" != "c" ]; then return; fi
+    if [ -z "${Event}" ] || [ -z "${Channel}" ]; then usage; fi
+    if [ "${Event}" != "c" ]; then return; fi
 
-    CHANNEL_DATA="$(tr -d '\0' <"${CHANNEL}")"
-    if [ -z "${CHANNEL_DATA}" ]; then return; fi
+    ChannelData="$(tr -d '\0' <"${Channel}")"
+    if [ -z "${ChannelData}" ]; then return; fi
 
-    if [ ! -e "${CHANNEL_PREV}" ]; then
-        touch "${CHANNEL_PREV}"
+    if [ ! -e "${ChannelPrev}" ]; then
+        touch "${ChannelPrev}"
     fi
 
-    CHANNEL_DATA_PREV="$(tr -d '\0' <"${CHANNEL_PREV}")"
-    CHANNEL_DATA_DIFF="$(diff <(echo -en "${CHANNEL_DATA_PREV}") \
-                              <(echo -en "${CHANNEL_DATA}") | tail -n +3)"
+    ChannelDataPrev="$(tr -d '\0' <"${ChannelPrev}")"
+    ChannelDataDiff="$(diff <(echo -en "${ChannelDataPrev}") \
+                              <(echo -en "${ChannelData}") | tail -n +3)"
 
-    echo -e "### Channel data ###\\n${CHANNEL_DATA}\\n###"
-    echo -e "### Channel data diff ###\\n${CHANNEL_DATA_DIFF}\\n###"
+    echo -e "### Channel data ###\\n${ChannelData}\\n###"
+    echo -e "### Channel data diff ###\\n${ChannelDataDiff}\\n###"
 
-    if [ -n "${CHANNEL_DATA_DIFF}" ]; then
+    if [ -n "${ChannelDataDiff}" ]; then
         echo "Handling channel data with $(handler)..."
-        "$(handler)" "${CHANNEL}" "${CHANNEL_DATA}" "${CHANNEL_DATA_PREV}"
+        "$(handler)" "${Channel}" "${ChannelData}" "${ChannelDataPrev}"
 
         echo "Saving channel data..."
-        echo "${CHANNEL_DATA}" > "${CHANNEL_PREV}"
+        echo "${ChannelData}" > "${ChannelPrev}"
     fi
 
     echo "Cleaning channel..."
-    true > "${CHANNEL}"
+    true > "${Channel}"
     echo "Done."
 }
 
@@ -47,7 +47,7 @@ function handler {
 }
 
 function usage {
-    >&2 echo "${USAGE}"
+    >&2 echo "${Usage}"
     exit 2
 }
 
