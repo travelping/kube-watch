@@ -8,6 +8,7 @@ Usage: kube-watch object <Type> <[Namespace/]Name> [Options]
        kube-watch version
 
 Options:
+    -a,--all-namespaces       Watch object in all namespaces
     -j,--jsonpath=<JsonPath>  Path to the object field (default: {})
     -c,--channel=<Channel>    Channel (default: /var/run/kube-watch/channel)
     -h,--handler=<Handler>    Handler (default: /usr/share/kube-watch/handler)
@@ -27,11 +28,12 @@ function main {
             local Namespace="${3%%/*}"
             local Name="${3##*/}"
             local JsonPath="{}"
+            local AllNamespaces=false
 
-            if [ -z "${Object}" ] || [ -z "${Name}" ]; then usage; fi
+            if [ -z "${Object}" ]; then usage; fi
 
             if [ "${Namespace}/${Name}" != "${NamespacedName}" ]; then
-                Namespace="$(namespace)"
+                Namespace=""
             fi
 
             shift 3
@@ -49,9 +51,10 @@ function main {
 
     for Arg in "$@"; do
         case "${Arg}" in
-            -j=|--jsonpath=*) JsonPath="${Arg#*=}" ;;
-            -c=|--channel=*) Channel="${Arg#*=}" ;;
-            -h=|--handler=*) Handler="${Arg#*=}" ;;
+            -a|--all-namespaces) AllNamespaces=true ;;
+            -j=*|--jsonpath=*) JsonPath="${Arg#*=}" ;;
+            -c=*|--channel=*) Channel="${Arg#*=}" ;;
+            -h=*|--handler=*) Handler="${Arg#*=}" ;;
             *) unknown_option "${Arg}" ;;
         esac
     done
@@ -65,7 +68,7 @@ function main {
 
     case "${Target}" in
         object) watch_object "${Object}" "${Namespace}" "${Name}" \
-                             "${JsonPath}" "${Channel}" ;;
+                             "${AllNamespaces}" "${JsonPath}" "${Channel}" ;;
         file) watch_file "${FileName}" "${Channel}" ;;
     esac
     Pids+=("$!")
@@ -77,17 +80,22 @@ function watch_object {
     local Object="$1"
     local Namespace="$2"
     local Name="$3"
-    local JsonPath="$4"
-    local Channel="$5"
+    local AllNamespaces="$4"
+    local JsonPath="$5"
+    local Channel="$6"
 
-    echo "Watching object ${Object} ${Namespace}/${Name} ${JsonPath}..."
+    local Command="kubectl get --watch ${Object}"
+
+    [ -n "${Name}" ] && Command="${Command} ${Name}"
+    [ -n "${Namespace}" ] && Command="${Command} --namespace ${Namespace}"
+    [ -n "${JsonPath}" ] && Command="${Command} --output jsonpath=${JsonPath}"
+
+    "${AllNamespaces}" && Command="${Command} --all-namespaces"
+
+    echo "Watching object with ${Command}..."
 
     (while :; do
-        kubectl get "${Object}" "${Name}" \
-                --watch \
-                --namespace "${Namespace}" \
-                --output jsonpath="${JsonPath}" |
-            tee "${Channel}" > /dev/null
+        ${Command} | tee "${Channel}" > /dev/null
     done) &
 }
 
@@ -141,10 +149,6 @@ function set_runtime_config {
 }
 function runtime_config_dir {
     echo "/var/run/kube-watch-config"
-}
-
-function namespace {
-    cat "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 }
 
 function usage {
