@@ -24,22 +24,19 @@ function main {
 
     ChannelDataPrev="$(tr -d '\0' <"${ChannelPrev}")"
     ChannelDataDiff="$(diff <(echo -en "${ChannelDataPrev}") \
-                              <(echo -en "${ChannelData}") | tail -n +3)"
-
-    echo -e "### Channel data ###\\n${ChannelData}\\n###"
-    echo -e "### Channel data diff ###\\n${ChannelDataDiff}\\n###"
+                            <(echo -en "${ChannelData}") | tail -n +3)"
 
     if [ -n "${ChannelDataDiff}" ]; then
+        echo -e "### Channel data ###\\n${ChannelData}\\n###"
+        echo -e "### Channel data diff ###\\n${ChannelDataDiff}\\n###"
+
         echo "Handling channel data with $(handler)..."
         "$(handler)" "${Channel}" "${ChannelData}" "${ChannelDataPrev}"
 
-        echo "Saving channel data..."
         echo "${ChannelData}" > "${ChannelPrev}"
     fi
 
-    echo "Cleaning channel..."
     true > "${Channel}"
-    echo "Done."
 }
 
 function handler {
