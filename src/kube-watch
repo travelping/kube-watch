@@ -8,7 +8,8 @@ Usage: kube-watch object <Type> <[Namespace/]Name> [Options]
        kube-watch version
 
 Options:
-    -a,--all-namespaces       Watch object in all namespaces
+    -a,--all-namespaces       Watch objects in all namespaces
+    -l,--label=<Label>        Filter objects with label
     -j,--jsonpath=<JsonPath>  Path to the object field (default: {})
     -c,--channel=<Channel>    Channel (default: /var/run/kube-watch/channel)
     -h,--handler=<Handler>    Handler (default: /usr/share/kube-watch/handler)
@@ -27,6 +28,7 @@ function main {
             local NamespacedName="$3"
             local Namespace="${3%%/*}"
             local Name="${3##*/}"
+            local Label=""
             local JsonPath="{}"
             local AllNamespaces=false
 
@@ -52,6 +54,7 @@ function main {
     for Arg in "$@"; do
         case "${Arg}" in
             -a|--all-namespaces) AllNamespaces=true ;;
+            -l=*|--label=*) Label="${Arg#*=}" ;;
             -j=*|--jsonpath=*) JsonPath="${Arg#*=}" ;;
             -c=*|--channel=*) Channel="${Arg#*=}" ;;
             -h=*|--handler=*) Handler="${Arg#*=}" ;;
@@ -68,7 +71,8 @@ function main {
 
     case "${Target}" in
         object) watch_object "${Object}" "${Namespace}" "${Name}" \
-                             "${AllNamespaces}" "${JsonPath}" "${Channel}" ;;
+                             "${AllNamespaces}" "${Label}" "${JsonPath}" \
+                             "${Channel}" ;;
         file) watch_file "${FileName}" "${Channel}" ;;
     esac
     Pids+=("$!")
@@ -81,13 +85,15 @@ function watch_object {
     local Namespace="$2"
     local Name="$3"
     local AllNamespaces="$4"
-    local JsonPath="$5"
-    local Channel="$6"
+    local Label="$5"
+    local JsonPath="$6"
+    local Channel="$7"
 
     local Command="kubectl get --watch ${Object}"
 
     [ -n "${Name}" ] && Command="${Command} ${Name}"
     [ -n "${Namespace}" ] && Command="${Command} --namespace ${Namespace}"
+    [ -n "${Label}" ] && Command="${Command} --selector ${Label}"
     [ -n "${JsonPath}" ] && Command="${Command} --output jsonpath=${JsonPath}"
 
     "${AllNamespaces}" && Command="${Command} --all-namespaces"
