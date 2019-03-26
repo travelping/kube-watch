@@ -18,14 +18,14 @@ Consider you have a [ConfigMap]:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kube-watch-example-configmap
+  name: kube-watch-fruits
 data:
   fruits: orange,apple,banana
 ```
 
 And you want to run a handling executable on every change of the "fruits" field.
-The [Example Manifest] creates all the needed workloads (including the mentioned
-ConfigMap) to demonstrate how could it be done with the tool.
+The [Fruits Example Manifest] creates all the needed workloads (including the
+mentioned ConfigMap) to demonstrate how could it be done with the tool.
 
 Along with the ConfigMap mentioned above the manifest creates another ConfigMap
 representing an example executable which is a script like this:
@@ -49,20 +49,21 @@ This example script just prints everything out.
 To connect this script and the target ConfigMap field, the manifest runs the
 Kube Watch based container as a [Deployment].
 
-To be able watching the ConfigMap, the Deployment uses a [Service Account] bound
-to the corresponding role. The [Role] and the [RoleBinding] are also created.
+To be allowed  watching the ConfigMap, the Deployment uses a [Service Account]
+bound to the corresponding role. The [Role] and the [RoleBinding] are also
+created.
 
-To see the example in action please apply the manifest (applies to the current
-namespace):
-
-```
-$ kubectl apply -f https://raw.githubusercontent.com/travelping/kube-watch/master/manifests/example.yaml
-```
-
-Let's look at the Kube Watch pod logs:
+To see the example in action please create from the manifest (creates in the
+current namespace):
 
 ```
-$ POD=$(kubectl get po -l app=kube-watch-example -o jsonpath={.items[0].metadata.name})
+$ kubectl create -f https://raw.githubusercontent.com/travelping/kube-watch/master/manifests/kube-watch-fruits.yaml
+```
+
+Let's look at the pod logs:
+
+```
+$ POD=$(kubectl get po -l app=kube-watch-fruits -o jsonpath={.items[0].metadata.name})
 $ kubectl logs $POD -f
 ...
 ### Channel data ###
@@ -88,8 +89,8 @@ example script behaves accordingly.
 If we continue watching logs and change our fruits basket:
 
 ```
-$ kubectl patch configmap kube-watch-example-configmap -p '{"data":{"fruits":"orange,mango,banana"}}'
-configmap/kube-watch-example-configmap patched
+$ kubectl patch configmap kube-watch-fruits -p '{"data":{"fruits":"orange,mango,banana"}}'
+configmap/kube-watch-fruits patched
 ```
 
 We will see the following log output:
@@ -112,6 +113,12 @@ Previous fruits: orange,apple,banana
 ...
 ```
 
+Delete the example workloads:
+
+```
+$ kubectl delete -f https://raw.githubusercontent.com/travelping/kube-watch/master/manifests/kube-watch-fruits.yaml
+```
+
 ### Your Own Solution
 
 Your own solution should not necessarily be a deployment and mount your handling
@@ -129,6 +136,8 @@ Usage: kube-watch object <Object> <[Namespace/]Name> [Options]
        kube-watch version
 
 Options:
+    -a,--all-namespaces       Watch objects in all namespaces
+    -l,--label=<Label>        Filter objects with label
     -j,--jsonpath=<Jsonpath>  Path to the object field (default: {})
     -c,--channel=<Channel>    Channel (default: /var/run/kube-watch/channel)
     -h,--handler=<Handler>    Handler (default: /usr/share/kube-watch/handler)
@@ -140,7 +149,7 @@ following:
 * the "kubectl" binary is available in the container (either mounted from the
   node or baked into the next layer image)
 * running pod has enough permissions to watch the target object (see the Role
-  in the [Example Manifest])
+  in the [Fruits Example Manifest])
 * handler executable is available in the container.
 
 You can also have several targets being watched. In this case you would need an
@@ -181,7 +190,7 @@ limitations under the License.
 [Role]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole
 [RoleBinding]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#rolebinding-and-clusterrolebinding
 [Service Account]: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account
-[Example Manifest]: manifests/example.yaml
+[Fruits Example Manifest]: manifests/kube-watch-fruits.yaml
 [Your Own Solution]: #your-own-solution
 
 <!-- Badges -->
