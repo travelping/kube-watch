@@ -152,8 +152,16 @@ following:
   in the [Fruits Example Manifest])
 * handler executable is available in the container.
 
-You can also have several targets being watched. In this case you would need an
-accordingly configured container per target.
+Some notes about arguments:
+
+* if Namespace is omitted the current one will be used
+* a Name should always be specified, but if empty (""), all the objects of
+  specified type will be watched within a Namespace
+* a label can be specified to watch specific group of objects within
+  a Namespace.
+
+Several not connected targets can be watched by running an accordingly
+configured container per target.
 
 ### Watching Files
 
