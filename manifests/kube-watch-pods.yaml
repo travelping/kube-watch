@@ -107,7 +107,7 @@ spec:
     spec:
       containers:
       - name: kube-watch-pods
-        image: quay.io/travelping/kube-watch:0.4.0
+        image: quay.io/travelping/kube-watch:latest
         imagePullPolicy: Always
         command:
         - kube-watch-pods
