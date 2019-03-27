@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-watch-pods-scripts
+data:
+  kube-watch-pods: |
+    #!/bin/sh
+    exec kube-watch object pod "" \
+            --all-namespaces \
+            --label=purpose=a \
+            --jsonpath="{.metadata.name}{.metadata.resourceVersion}" \
+            --handler="kube-watch-pods-show"
+
+  kube-watch-pods-show: |
+    #!/bin/bash
+
+    echo "Current: $2"
+    echo "Previous: $3"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-watch-pods
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kube-watch-pods
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+# resourceNames: ["a1", "b1"]
+  verbs: ["list", "get", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-watch-pods
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-watch-pods
+subjects:
+- kind: ServiceAccount
+  name: kube-watch-pods
+  namespace: default
+---
+#kind: Role
+#apiVersion: rbac.authorization.k8s.io/v1
+#metadata:
+#  name: kube-watch-pods
+#  namespace: n1
+#rules:
+#- apiGroups: [""]
+#  resources: ["pods"]
+## resourceNames: ["a1", "b1"]
+#  verbs: ["list", "get", "watch"]
+#---
+#apiVersion: rbac.authorization.k8s.io/v1beta1
+#kind: RoleBinding
+#metadata:
+#  name: kube-watch-pods
+#  namespace: n1
+#roleRef:
+#  apiGroup: rbac.authorization.k8s.io
+#  kind: Role
+#  name: kube-watch-pods
+#subjects:
+#- kind: ServiceAccount
+#  name: kube-watch-pods
+#  namespace: default
+#---
+#kind: Role
+#apiVersion: rbac.authorization.k8s.io/v1
+#metadata:
+#  name: kube-watch-pods
+#  namespace: n2
+#rules:
+#- apiGroups: [""]
+#  resources: ["pods"]
+## resourceNames: ["a2", "b2"]
+#  verbs: ["list", "get", "watch"]
+#---
+#apiVersion: rbac.authorization.k8s.io/v1beta1
+#kind: RoleBinding
+#metadata:
+#  name: kube-watch-pods
+#  namespace: n2
+#roleRef:
+#  apiGroup: rbac.authorization.k8s.io
+#  kind: Role
+#  name: kube-watch-pods
+#subjects:
+#- kind: ServiceAccount
+#  name: kube-watch-pods
+#  namespace: default
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube-watch-pods
+spec:
+  template:
+    metadata:
+      labels:
+        app: kube-watch-pods
+    spec:
+      containers:
+      - name: kube-watch-pods
+        image: quay.io/travelping/kube-watch:0.4.0
+        imagePullPolicy: Always
+        command:
+        - kube-watch-pods
+        volumeMounts:
+        - name: kubectl
+          mountPath: /bin/kubectl
+        - name: scripts
+          mountPath: /usr/local/bin
+      volumes:
+      - name: kubectl
+        hostPath:
+          path: /opt/bin/kubectl
+      - name: scripts
+        configMap:
+          name: kube-watch-pods-scripts
+          defaultMode: 0744
+      serviceAccount: kube-watch-pods
+      serviceAccountName: kube-watch-pods

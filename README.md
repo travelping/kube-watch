@@ -154,11 +154,10 @@ following:
 
 Some notes about arguments:
 
-* if Namespace is omitted the current one will be used
-* a Name should always be specified, but if empty (""), all the objects of
-  specified type will be watched within a Namespace
-* a label can be specified to watch specific group of objects within
-  a Namespace.
+* a Name should always be specified, but if empty (""), all the objects of the
+  specified type will be watched. In case of "label" or "all namespaces" switch
+  the Name should be set to ""
+* if Namespace is omitted the current one will be used.
 
 Several not connected targets can be watched by running an accordingly
 configured container per target.
