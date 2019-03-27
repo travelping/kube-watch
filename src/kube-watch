@@ -24,7 +24,7 @@ function main {
 
     case "${Target}" in
         object)
-            local Object="$2"
+            local Type="$2"
             local NamespacedName="$3"
             local Namespace="${3%%/*}"
             local Name="${3##*/}"
@@ -32,7 +32,7 @@ function main {
             local JsonPath="{}"
             local AllNamespaces=false
 
-            if [ -z "${Object}" ]; then usage; fi
+            if [ -z "${Type}" ]; then usage; fi
 
             if [ "${Namespace}/${Name}" != "${NamespacedName}" ]; then
                 Namespace=""
@@ -70,7 +70,7 @@ function main {
     Pids+=("$!")
 
     case "${Target}" in
-        object) watch_object "${Object}" "${Namespace}" "${Name}" \
+        object) watch_object "${Type}" "${Namespace}" "${Name}" \
                              "${AllNamespaces}" "${Label}" "${JsonPath}" \
                              "${Channel}" ;;
         file) watch_file "${FileName}" "${Channel}" ;;
@@ -81,7 +81,7 @@ function main {
 }
 
 function watch_object {
-    local Object="$1"
+    local Type="$1"
     local Namespace="$2"
     local Name="$3"
     local AllNamespaces="$4"
@@ -89,7 +89,7 @@ function watch_object {
     local JsonPath="$6"
     local Channel="$7"
 
-    local Command="kubectl get --watch ${Object}"
+    local Command="kubectl get --watch ${Type}"
 
     [ -n "${Name}" ] && Command="${Command} ${Name}"
     [ -n "${Namespace}" ] && Command="${Command} --namespace ${Namespace}"

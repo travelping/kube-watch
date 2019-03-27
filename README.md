@@ -131,7 +131,7 @@ it provides basic idea:
 
 ```
 $ docker run --rm quay.io/travelping/kube-watch
-Usage: kube-watch object <Object> <[Namespace/]Name> [Options]
+Usage: kube-watch object <Type> <[Namespace/]Name> [Options]
        kube-watch file <FileName> [Options]
        kube-watch version
 
