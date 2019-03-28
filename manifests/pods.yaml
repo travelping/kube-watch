@@ -9,7 +9,6 @@ metadata:
 spec:
   containers:
   - image: gcr.io/google-containers/pause
-    imagePullPolicy: Always
     name: pause
 ---
 apiVersion: v1
@@ -23,7 +22,6 @@ metadata:
 spec:
   containers:
   - image: gcr.io/google-containers/pause
-    imagePullPolicy: Always
     name: pause
 ---
 apiVersion: v1
@@ -37,7 +35,6 @@ metadata:
 spec:
   containers:
   - image: gcr.io/google-containers/pause
-    imagePullPolicy: Always
     name: pause
 ---
 apiVersion: v1
@@ -51,5 +48,4 @@ metadata:
 spec:
   containers:
   - image: gcr.io/google-containers/pause
-    imagePullPolicy: Always
     name: pause
